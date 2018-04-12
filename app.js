@@ -5,7 +5,6 @@ A simple echo bot for the Microsoft Bot Framework.
 var restify = require('restify');
 var builder = require('botbuilder');
 var botbuilder_azure = require("botbuilder-azure");
-var builder_cognitiveservices = require("botbuilder-cognitiveservices");
 
 // Setup Restify Server
 var server = restify.createServer();
@@ -37,29 +36,53 @@ var tableStorage = new botbuilder_azure.AzureBotStorage({ gzipData: false }, azu
 var bot = new builder.UniversalBot(connector);
 bot.set('storage', tableStorage);
 
-var recognizer = new builder_cognitiveservices.QnAMakerRecognizer({
-                knowledgeBaseId: process.env.QnAKnowledgebaseId, 
-    subscriptionKey: process.env.QnASubscriptionKey});
+// bot.dialog('/', [
+//     function (session) {
+//         builder.Prompts.text(session, "Hello... What's your name?");
+//     },
+//     function (session, results) {
+//         session.userData.name = results.response;
+//         builder.Prompts.number(session, "Hi " + results.response + ", How many years have you been coding?"); 
+//     },
+//     function (session, results) {
+//         session.userData.coding = results.response;
+//         builder.Prompts.choice(session, "What language do you code Node using?", ["JavaScript", "CoffeeScript", "TypeScript"]);
+//     },
+//     function (session, results) {
+//         session.userData.language = results.response.entity;
+//         session.send("Got it... " + session.userData.name + 
+//                     " you've been programming for " + session.userData.coding + 
+//                     " years and use " + session.userData.language + ".");
+//     }
+// ]);
 
-var basicQnAMakerDialog = new builder_cognitiveservices.QnAMakerDialog({
-    recognizers: [recognizer],
-                defaultMessage: 'No match! Try changing the query terms!',
-                qnaThreshold: 0.3}
-);
+    // if(session.message.text === "Next step") {
+    // session.send('The next step is ______________') ;
+    // }
 
-bot.dialog('basicQnAMakerDialog', basicQnAMakerDialog);
+bot.dialog('/', [
+    function (session) {
+        builder.Prompts.text(session, "Hello... What's your name?", {speak: "Hello, what's your name?"});
+    },
+    // function (session, results) {
+    //     session.userData.name = results.response;
+    //     builder.Prompts.number(session, "Hi " + results.response + ", How many years have you been coding?"); 
+    // },
+    
+    function (session, results) {
+        session.userData.name = results.response;
+        builder.Prompts.choice(session, "Hi " + results.response + ", do you want me to walk you through making a grilled cheese?", ["Yes", "No"], 
+            {speak: "Hi " + results.response + ", do you want to to walk you through making a grilled cheese?"});
+    },
+    
+    function (session, results) {
+        session.userData.GCchoice = results.response.entity;
+        if(session.userData.GCchoice === "No") {
+            session.say("Okay goodbye screw you then.", "Okay goodbye screw you then.");
+        }
+        else {
+            session.say("Okay! Let's get started. The first step is...", "Okay! Let's get started. The first step is...") ;
+        }
 
-bot.dialog('/', //basicQnAMakerDialog);
-[
-    function (session){
-        var qnaKnowledgebaseId = process.env.QnAKnowledgebaseId;
-        var qnaSubscriptionKey = process.env.QnASubscriptionKey;
-        
-        // QnA Subscription Key and KnowledgeBase Id null verification
-        if((qnaSubscriptionKey == null || qnaSubscriptionKey == '') || (qnaKnowledgebaseId == null || qnaKnowledgebaseId == ''))
-            session.send('Please set QnAKnowledgebaseId and QnASubscriptionKey in App Settings. Get them at https://qnamaker.ai.');
-        else
-            session.replaceDialog('basicQnAMakerDialog');
     }
 ]);
-
