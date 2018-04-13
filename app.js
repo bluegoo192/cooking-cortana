@@ -7,6 +7,17 @@ var builder = require('botbuilder');
 var botbuilder_azure = require("botbuilder-azure");
 var unirest = require('unirest');
 
+// var documentDbOptions = {
+//     host: 'https://cookingcortana.documents.azure.com:443/',
+//     masterKey: 'q8c7eXyXzso9GDEafTKgVAVsN1iAHdkVkDCCoIkszZOPQhRBA4k5sdTmrPR2GxtUmQC6lJv8QkljmTqr7yU4uA==',
+//     database: 'botdocs',
+//     collection: 'botdata'
+// };
+
+// var docDbClient = new azure.DocumentDbClient(documentDbOptions);
+
+// var cosmosStorage = new azure.AzureBotStorage({ gzipData: false }, docDbClient);
+
 // Setup Restify Server
 var server = restify.createServer();
 server.listen(process.env.port || process.env.PORT || 3978, function () {
@@ -61,21 +72,18 @@ bot.set('storage', tableStorage);
     // session.send('The next step is ______________') ;
     // }
 
+bot.dialog('/', [ // CONSIDER WHAT IF USER LEAVES AND CORTANA SHUTS OFF?????????????????????????????
+                    // bot state management : https://docs.microsoft.com/en-us/azure/bot-service/nodejs/bot-builder-nodejs-stat
 
-bot.dialog('/', [
     function (session) {
         console.log("NODE VERSION: "+process.version);
         builder.Prompts.text(session, "Hello... What's your name?", {speak: "Hello, what's your name?"});
     },
-    // function (session, results) {
-    //     session.userData.name = results.response;
-    //     builder.Prompts.number(session, "Hi " + results.response + ", How many years have you been coding?");
-    // },
 
     function (session, results) {
         session.userData.name = results.response;
         builder.Prompts.choice(session, "Hi " + results.response + ", do you want me to walk you through making a grilled cheese?", ["Yes", "No"],
-            {speak: "Hi " + results.response + ", do you want to to walk you through making a grilled cheese?"});
+            {speak: "Hi " + results.response + ", do you want me to walk you through making a grilled cheese?"});
     },
 
     function (session, results) {
