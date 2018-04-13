@@ -72,7 +72,7 @@ bot.dialog('/', [
                     .then(recipe => {
                         session.userData.currentStep = 0;
                         session.userData.recipe = recipe;
-                        session.send("Okay, lets get started.  We're going to cook "+recipe.title);
+                        session.userData.starting = true;
                         session.beginDialog('/recipe', session);
                     });
             });
@@ -92,6 +92,8 @@ var getStepInput = function (route) {
             session.beginDialog(route, session);
         } else if (res.includes("go to")) {
             session.userData.currentStep = Number(results.response.slice(-1)) - 1;
+            session.beginDialog(route, session);
+        } else if (res.includes("repeat")) {
             session.beginDialog(route, session);
         } else if (res.includes("how much") || results.response.toLowerCase().includes("how many")) {
             var words = res.split(" ");
@@ -123,12 +125,15 @@ var getStepInput = function (route) {
 var stepFunction = function (session) {
     var step = session.userData.currentStep + 1;
     var recipe = session.userData.recipe;
-    // if step === recipe.analyzedInstructions[0].steps - 1
     if(step === recipe.analyzedInstructions[0].steps.length + 1 ) {
         session.beginDialog('/recipeDONE', session);
         return ;
     }
     var prompt = "Step "+step+": " + recipe.analyzedInstructions[0].steps[ step-1 ].step;
+    if (session.userData.starting) {
+        prompt = "Okay, lets get started.  We're going to cook "+recipe.title+".  \n"+prompt;
+        session.userData.starting = false;
+    }
     builder.Prompts.text(session, prompt, { speak: prompt });
 };
 
@@ -154,7 +159,7 @@ bot.dialog('/unhandled', [
        builder.Prompts.text(session, prompt, { speak: prompt });
    },
    getStepInput('/recipe')
-])
+]);
 
 bot.dialog('/recipe', [
     stepFunction,
@@ -169,10 +174,26 @@ bot.dialog('/recipe2', [
 bot.dialog('/recipeDONE', [
     function (session) {
         var temp = "Congratulations, " + session.userData.name + "! You've successfully cooked " + session.userData.recipe.title + ". What would you like to do next?" ;
-        builder.Prompts.choice(session, temp, ["Let's eat!", "Get list of accompanying wines"],
+        builder.Prompts.choice(session, temp, ["Let's eat!", "View wine pairings"],
             {speak: temp});
-        session.endConversation();
+        // session.endConversation();
     },
+
+    function (session, result) {
+        session.userData.endChoice = result.response;
+        if(session.userData.endChoice === "Let's eat!") {
+            session.endConversation();
+        } else {
+            var wines = session.userData.recipe.winePairing.pairedWines;
+            var wineOutput = "Your " + session.userData.recipe.title + " goes well with ";
+            for (var i = 0; i<wines.length - 1; i++) {
+                wineOutput += wines[i] + ", ";
+            }
+            wineOutput += wines[wines.length-1] + ".";
+            console.log(wineOutput);
+            builder.Prompts.text(session, wineOutput, {speak: wineOutput});
+        }
+    }
 ]);
 
 bot.dialog('/recipeNotFound', [
