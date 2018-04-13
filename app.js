@@ -5,7 +5,7 @@ Cooking Cortana - your personal cooking instructor right in your Windows Device
 var restify = require('restify');
 var builder = require('botbuilder');
 var botbuilder_azure = require("botbuilder-azure");
-var unirest = require('unirest');
+var fetch = require('node-fetch');
 
 // Setup Restify Server
 var server = restify.createServer();
@@ -74,66 +74,70 @@ bot.dialog('/', [
 
     function (session, results) {
         session.userData.name = results.response;
-        builder.Prompts.choice(session, "Hi " + results.response + ", do you want me to walk you through making a grilled cheese?", ["Yes", "No"],
-            {speak: "Hi " + results.response + ", do you want to to walk you through making a grilled cheese?"});
+        var temp = "Hi " + results.response + ", what would you like to make today?";
+        builder.Prompts.choice(session, temp, ["Pan Roasted Cauliflower", "Food #2", "Food #2"],
+            {speak: temp});
     },
 
     function (session, results) {
         session.userData.GCchoice = results.response.entity;
         if(session.userData.GCchoice === "No") {
             session.say("Okay goodbye screw you then.", "Okay goodbye screw you then.");
-        }
-        else {
-            session.say("Okay! Let's get started.  Loading instructions...") ;
-            unirest.get("https://spoonacular-recipe-food-nutrition-v1.p.mashape.com/recipes/479101/information")
-                .header("X-Mashape-Key", "YCt1DnputOmshN4JwfNYAUxzK39xp1Ln0GZjsnbgC8HjfQtD6b")
-                .header("X-Mashape-Host", "spoonacular-recipe-food-nutrition-v1.p.mashape.com")
-                .end(function (result) {
-                  session.say("Today we're gonna cook: "+result.body.title);
-                  session.userData.currentStep = 0;
-                  session.userData.recipe = result.body;
-                  session.beginDialog('/recipe', session);
+        } else {
+            var options = {
+                headers: {
+                    "X-Mashape-Key": "YCt1DnputOmshN4JwfNYAUxzK39xp1Ln0GZjsnbgC8HjfQtD6b",
+                    "X-Mashape-Host": "spoonacular-recipe-food-nutrition-v1.p.mashape.com"
+                }
+            };
+            fetch("https://spoonacular-recipe-food-nutrition-v1.p.mashape.com/recipes/479101/information", options)
+                .then(res => res.json())
+                .then(recipe => {
+                    session.userData.currentStep = 0;
+                    session.userData.recipe = recipe;
+                    session.send("Okay, lets get started.  We're going to cook "+recipe.title);
+                    session.beginDialog('/recipe', session);
                 });
+            session.endDialog();
         }
-    },
-
-
+    }
 ]);
 
 var getStepInput = function (route) {
     var gsiFunction = function (session, results) {
-        if (results.response.toLowerCase().includes("next")) {
+        var res = results.response.toLowerCase();
+        if (res.includes("next")) {
             session.userData.currentStep++;
             session.beginDialog(route, session);
-        } else if (results.response.toLowerCase().includes("previous") || 
+        } else if (res.includes("previous") ||
                     results.response.toLowerCase().includes("back")) {
-            session.userData.currentStep--; 
-            session.beginDialog(route, session); 
-        } else if (results.response.toLowerCase().includes("go to")) {
-            session.userData.currentStep = Number(results.response.slice(-1)); 
+            session.userData.currentStep--;
             session.beginDialog(route, session);
+        } else if (res.includes("go to")) {
+            session.userData.currentStep = Number(results.response.slice(-1)) - 1;
+            session.beginDialog(route, session);
+        } else if (res.includes("how much") || results.response.toLowerCase().includes("how many")) {
+            // if 
         }
     };
     return gsiFunction;
 };
 
+var stepFunction = function (session) {
+    var step = session.userData.currentStep + 1;
+    var recipe = session.userData.recipe;
+    // if step === recipe.analyzedInstructions[0].steps
+    var prompt = "Step "+step+": " + recipe.analyzedInstructions[0].steps[ step ].step;
+    builder.Prompts.text(session, prompt, { speak: prompt });
+};
+
 
 bot.dialog('/recipe', [
-    function (session) {
-        session.say('hi');
-        var step = session.userData.currentStep;
-        var recipe = session.userData.recipe;
-        builder.Prompts.text(session, "Step "+step+": " + recipe.analyzedInstructions[0].steps[ step ].step);
-    },
+    stepFunction,
     getStepInput('/recipe2')
 ]);
 
 bot.dialog('/recipe2', [
-    function (session) {
-        session.say('hi');
-        var step = session.userData.currentStep;
-        var recipe = session.userData.recipe;
-        builder.Prompts.text(session, "Step "+step+": " + recipe.analyzedInstructions[0].steps[ step ].step);
-    },
+    stepFunction,
     getStepInput('/recipe')
 ]);
