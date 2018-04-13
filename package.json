@@ -1,0 +1,22 @@
+{
+  "name": "cooking-cortana",
+  "version": "1.0.0",
+  "description": "Welcome to Cooking Cortana! This is a hackathon project by Arthur Silverstein and Calvin Wang. This is our first project with Microsoft Azure's Botframework at UCSB's first Cortana Hackathon!",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluegoo192/cooking-cortana.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bluegoo192/cooking-cortana/issues"
+  },
+  "homepage": "https://github.com/bluegoo192/cooking-cortana#readme",
+  "dependencies": {
+    "unirest": "^0.5.1"
+  }
+}
