@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------
-A simple echo bot for the Microsoft Bot Framework.
+Cooking Cortana - your personal cooking instructor right in your Windows Device
 -----------------------------------------------------------------------------*/
 
 var restify = require('restify');
@@ -105,12 +105,17 @@ var getStepInput = function (route) {
         if (results.response.toLowerCase().includes("next")) {
             session.userData.currentStep++;
             session.beginDialog(route, session);
-        } else if (false) {
-
+        } else if (results.response.toLowerCase().includes("previous") || 
+                    results.response.toLowerCase().includes("back")) {
+            session.userData.currentStep--; 
+            session.beginDialog(route, session); 
+        } else if (results.response.toLowerCase().includes("go to")) {
+            session.userData.currentStep = Number(results.response.slice(-1)); 
+            session.beginDialog(route, session);
         }
-    }
+    };
     return gsiFunction;
-}
+};
 
 
 bot.dialog('/recipe', [
